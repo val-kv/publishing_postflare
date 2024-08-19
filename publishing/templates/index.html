@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Platform</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Платформа для публикации записей</h1>
+        <!-- Здесь будет отображение записей -->
+    </div>
+    Оплатить подписку
+
+
+    var stripe = Stripe('YOUR_PUBLIC_KEY');
+    var checkoutButton = document.getElementById('checkout-button');
+
+    checkoutButton.addEventListener('click', function () {
+    fetch('/create-checkout-session/', {
+    method: 'POST',
+    }).then(function (response) {
+    return response.json();
+    }).then(function (sessionId) {
+    return stripe.redirectToCheckout({ sessionId: sessionId.id });
+    }).then(function (result) {
+    if (result.error) {
+    alert(result.error.message);
+    }
+    });
+    });
+</body>
+</html>
