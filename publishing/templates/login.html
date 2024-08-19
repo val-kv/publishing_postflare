@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Авторизация</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.15/jquery.mask.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <h1 class="text-center">Авторизация</h1>
+                <form action="/login/" method="post">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="phone">Номер телефона:</label>
+                        <input type="text" id="phone" name="phone" class="form-control" data-mask="+7 (999) 999-99-9">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Пароль:</label>
+                        <input type="password" id="password" name="password" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-block">Войти</button>
+                        <a href="/" class="btn btn-secondary btn-block">Назад</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            $('#phone').mask('+7 (999) 999-99-99');
+        });
+    </script>
+</body>
+</html>
