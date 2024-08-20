@@ -5,7 +5,7 @@ from rest_framework import viewsets, status
 from django.views.decorators.csrf import csrf_exempt
 from .models import Post, User, Product
 from .serializers import PostSerializer
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 import stripe
 from django.conf import settings
 from rest_framework.views import APIView
@@ -20,9 +20,11 @@ class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
 
     def get_permissions(self):
-        if self.action == 'list':
-            return []
-        return [IsAuthenticated()]
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAdminUser]
+        return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
