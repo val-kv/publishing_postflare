@@ -1,17 +1,17 @@
-from django.contrib.sites import requests
 from django.shortcuts import render
+from django.views import View
 from django.views.generic import TemplateView
-from rest_framework import viewsets
-from .models import Post, User
+from rest_framework import viewsets, status
+from django.views.decorators.csrf import csrf_exempt
+from .models import Post, User, Product
 from .serializers import PostSerializer
 from rest_framework.permissions import IsAuthenticated
 import stripe
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from django.http import JsonResponse
-from django.views import View
+from django.http import HttpResponse, JsonResponse
+from django.core.mail import send_mail
 from .serializers import UserSerializer
 
 
@@ -66,66 +66,35 @@ class UserLogoutView(APIView):
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-class CreateCheckoutSession(APIView):
-    def post(self, request):
-        url = "http://localhost:8000"
+class CreateCheckoutSessionView(View):
+    def post(self, request, *args, **kwargs):
+        product_id = self.kwargs["pk"]
+        product = Product.objects.get(id=product_id)
+        url = "http://127.0.0.1:8000"
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[
                 {
                     'price_data': {
                         'currency': 'usd',
+                        'unit_amount': product.price,
                         'product_data': {
-                            'name': 'Subscription Service',
+                            'name': product.name
                         },
-                        'unit_amount': 5000,  # Цена в центах (например, 50.00 USD)
                     },
                     'quantity': 1,
                 },
             ],
+            metadata={
+                "product_id": product.id
+            },
             mode='payment',
             success_url=url + '/success/',
             cancel_url=url + '/cancel/',
         )
-        return Response({'id': checkout_session.id})
-
-    def get(self, request):
-        return Response(status=status.HTTP_200_OK)
-
-
-class StripeWebhook(View):
-    def post(self, request):
-        payload = request.body
-        signature = request.META['HTTP_STRIPE_SIGNATURE']
-        endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
-
-        try:
-            event = stripe.Webhook.construct_event(payload, signature, endpoint_secret)
-        except ValueError as e:
-            # Invalid payload
-            return JsonResponse({'error': str(e)}, status=400)
-        except stripe.error.SignatureVerificationError as e:
-            # Invalid signature
-            return JsonResponse({'error': str(e)}, status=400)
-
-        # Обработка различных событий
-        if event['type'] == 'checkout.session.completed':
-            checkout_session = event['data']['object']
-            # Получаем данные о пользователе из сессии
-            customer_email = checkout_session['customer_email']
-            subscription_status = checkout_session['subscription_status']
-
-            # Обновляем запись пользователя в базе данных
-            try:
-                user = User.objects.get(email=customer_email)
-                user.subscription_status = subscription_status
-                user.save()
-            except User.DoesNotExist:
-                # Создаем новую запись пользователя, если она не существует
-                user = User(email=customer_email, subscription_status=subscription_status)
-                user.save()
-
-            return JsonResponse({'status': 'success'}, status=200)
+        return JsonResponse({
+            'id': checkout_session.id
+        })
 
 
 class SuccessView(TemplateView):
@@ -142,3 +111,53 @@ class ProtectedView(TemplateView):
 
 class HomePageView(TemplateView):
     template_name = "index.html"
+
+
+class PremiumView(TemplateView):
+    template_name = "premium.html"
+
+    def get_context_data(self, **kwargs):
+        product = Product.objects.get(name="Премиум подписка")
+        context = super(PremiumView, self).get_context_data(**kwargs)
+        context.update({
+            "product": product,
+            "STRIPE_PUBLIC_KEY": settings.STRIPE_PUBLIC_KEY
+        })
+        return context
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        # Invalid payload
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return HttpResponse(status=400)
+
+    # Handle the checkout.session.completed event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+
+        customer_email = session["customer_details"]["email"]
+        product_id = session["metadata"]["product_id"]
+
+        product = Product.objects.get(id=product_id)
+
+        # send email to the customer
+        send_mail(
+            subject="Here is your product",
+            message=f"Thanks for your purchase. The URL is: {product.url}",
+            recipient_list=[customer_email],
+            from_email="your@email.com"
+        )
+
+    return HttpResponse(status=200)

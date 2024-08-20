@@ -1,9 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-
-import publishing
-from .views import PostViewSet, CreateCheckoutSession, CancelView, SuccessView, StripeWebhook, \
-    HomePageView, ProtectedView, UserRegistrationView, UserLoginView, UserLogoutView
+from .views import PostViewSet, CancelView, SuccessView, stripe_webhook, \
+    HomePageView, ProtectedView, UserRegistrationView, UserLoginView, UserLogoutView, PremiumView, \
+    CreateCheckoutSessionView
 
 app_name = 'publishing'
 
@@ -16,9 +15,6 @@ urlpatterns = [
     path('login/', UserLoginView.as_view(), name='login'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
     path('posts/', PostViewSet.as_view({'get': 'list', 'post': 'create'}), name='posts'),
-    path('create-checkout-session/<int:pk>/', CreateCheckoutSession.as_view(), name='create-checkout-session'),
-    path('cancel/', CancelView.as_view(), name='cancel'),
-    path('success/', SuccessView.as_view(), name='success'),
     path('protected/', ProtectedView.as_view(), name='protected'),
-    path('webhook/', StripeWebhook.as_view(), name='stripe-webhook'),
+    path('premium/', PremiumView.as_view(), name='premium'),
 ]
