@@ -17,4 +17,8 @@ urlpatterns = [
     path('posts/', PostViewSet.as_view({'get': 'list', 'post': 'create'}), name='posts'),
     path('protected/', ProtectedView.as_view(), name='protected'),
     path('premium/', PremiumView.as_view(), name='premium'),
+    path('create-checkout-session/<pk>/', CreateCheckoutSessionView.as_view(), name='create-checkout-session'),
+    path('cancel/', CancelView.as_view(), name='cancel'),
+    path('success/', SuccessView.as_view(), name='success'),
+    path('webhooks/stripe/', stripe_webhook, name='stripe-webhook'),
 ]
