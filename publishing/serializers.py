@@ -11,12 +11,10 @@ class PostSerializer(serializers.ModelSerializer):
 class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'phone_number')
+        fields = ('password', 'phone_number')
 
     def create(self, validated_data):
-        user = User.objects.create_user(validated_data['username'], validated_data['email'], validated_data['password'])
-        # Отправка SMS-сообщения о регистрации
-        send_registration_message(validated_data['phone_number'], "Registration successful! Your username is {}.".format(user.username))
+        user = User.objects.create_user(validated_data['phone_number'], validated_data['password'])
         return user
 
 
